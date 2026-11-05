@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UPS System</title>
+<style>
+body{margin:0;font:16px Arial,sans-serif;background:#f5f6f8;color:#222}nav{background:#490e0e;color:#fff;padding:17px 6%;font-weight:bold}main{max-width:1150px;margin:32px auto;padding:0 16px}h1{font-size:26px}p{line-height:1.5;color:#555}.table-wrap{overflow-x:auto;background:#fff;border:1px solid #ddd;border-radius:6px}table{border-collapse:collapse;width:100%;min-width:720px}th,td{padding:13px;text-align:left;border-bottom:1px solid #eee}thead{background:#eee}tbody tr:nth-child(even){background:#fafafa}.online{color:#17743a;font-weight:bold}.offline,.low{color:#b3261e;font-weight:bold}.muted{color:#777}small{color:#777}
+</style>
+</head>
+<body><nav>MTP COMPANY — UPS Monitoring</nav><main>
+<h1>UPS Status</h1><p>Live readings from up to 10 UPS devices. A device is shown offline if no update has arrived for 60 seconds.</p>
+<div class="table-wrap"><table><thead><tr><th>UPS ID</th><th>Status</th><th>Battery</th><th>Load Current</th><th>Temperature</th><th>Last Seen (UAE)</th></tr></thead><tbody id="result"></tbody></table></div>
+<p><small id="connection">Connecting to live updates...</small></p>
+</main><script src="/socket.io/socket.io.js"></script><script>
+const body = document.getElementById('result');
+const connection = document.getElementById('connection');
+const socket = io();
+const number = (value, digits, unit) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) + ' ' + unit : '—';
+const dateText = value => value ? new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Dubai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(value)) : 'Never';
+function render(data){
+  body.replaceChildren();
+  for (const d of data) {
+    const row = document.createElement('tr');
+    const values = [`UPS ${d.id}`, d.status, number(d.battery,2,'V'), number(d.load,2,'A'), number(d.tem,1,'°C'), dateText(d.lastSeen)];
+    values.forEach((value,i)=>{
+      const td=document.createElement('td');td.textContent=value;
+      if(i===1)td.className=d.status==='Online'?'online':'offline';
+      if(i===2 && typeof d.battery==='number' && d.battery<=10.5)td.className='low';
+      row.appendChild(td);
+    });
+    body.appendChild(row);
+  }
+}
+socket.on('updateData',render);
+socket.on('connect',()=>connection.textContent='Live connection active');
+socket.on('disconnect',()=>connection.textContent='Connection lost; reconnecting...');
+</script></body></html>
